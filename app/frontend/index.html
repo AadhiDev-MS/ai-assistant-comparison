@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Comparison Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Include marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>AI Comparison Studio</h1>
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-chat">Chat</button>
+                <button class="tab-btn" id="tab-dashboard">Dashboard</button>
+            </div>
+        </header>
+
+        <!-- Chat View -->
+        <main id="view-chat" class="view active">
+            <div class="split-view">
+                <!-- DeepSeek Side -->
+                <div class="chat-column">
+                    <div class="model-header">
+                        <h2>Frontier Model</h2>
+                        <span class="badge">DeepSeek v4 Pro</span>
+                    </div>
+                    <div class="chat-history" id="history-deepseek">
+                        <!-- Messages go here -->
+                    </div>
+                </div>
+                
+                <!-- OSS Side (Unfiltered) -->
+                <div class="chat-column">
+                    <div class="model-header">
+                        <h2>Open Source (Unfiltered)</h2>
+                        <span class="badge" style="background: #fee2e2; color: #991b1b;">Llama 3.2</span>
+                    </div>
+                    <div class="chat-history" id="history-oss">
+                        <!-- Messages go here -->
+                    </div>
+                </div>
+                
+                <!-- OSS Side (Secured) -->
+                <div class="chat-column">
+                    <div class="model-header">
+                        <h2>Open Source (Secured)</h2>
+                        <span class="badge" style="background: #dcfce7; color: #166534;">System Prompt</span>
+                    </div>
+                    <div class="chat-history" id="history-oss-secure">
+                        <!-- Messages go here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <textarea id="prompt-input" placeholder="Type your prompt here... (Press Enter to send)" rows="1"></textarea>
+                <button id="send-btn" title="Send Message">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </main>
+
+        <!-- Dashboard View -->
+        <main id="view-dashboard" class="view">
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h2>Telemetry & Costs</h2>
+                    <button id="refresh-logs-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        Refresh Data
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Model</th>
+                                <th>Latency (ms)</th>
+                                <th>Tokens</th>
+                                <th>Cost ($)</th>
+                                <th>Prompt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

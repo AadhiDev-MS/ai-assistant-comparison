@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+interactions.db
+app/shared/chroma_db/
+.DS_Store
+.env
