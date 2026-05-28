@@ -24,6 +24,10 @@ This project is a full-stack AI evaluation platform built to compare a **Proprie
 * **Decision:** Utilized an embedded SQLite database (`app/shared/logger.py`) to log interactions, latency, token counts, and cost estimates.
 * **Rationale:** SQLite requires zero configuration, making the application highly portable while providing robust enough querying capabilities for the Telemetry Dashboard.
 
+### 1.5. Vector Database Memory (RAG)
+* **Decision:** Replaced the standard sliding-window conversation memory with a Retrieval-Augmented Generation (RAG) system powered by **ChromaDB**.
+* **Rationale:** Standard conversational AI quickly forgets old context once the token limit is reached. By embedding all past conversation turns into a persistent Vector Database, the backend intercepts incoming prompts, performs a semantic similarity search against the DB, and injects the 3 most relevant historical messages back into the LLM's system prompt. This grants the models near-infinite long-term conversational memory.
+
 ---
 
 ## 2. Engineering Tradeoffs
