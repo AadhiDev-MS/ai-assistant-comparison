@@ -2,9 +2,9 @@ import requests
 import time
 
 class OSSClient:
-    def __init__(self, host_ip="98.84.12.50"):
+    def __init__(self, host_ip="35.175.201.115"):
         """
-        Connects to our open-source model running on the AWS EC2 instance via Ollama.
+        Connects to the Ollama server running on the AWS EC2 instance.
         """
         self.base_url = f"http://{host_ip}:11434/api/chat"
 
