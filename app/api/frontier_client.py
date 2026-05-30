@@ -50,3 +50,38 @@ class DeepSeekClient:
         except requests.exceptions.RequestException as e:
             print(f"API Error details: {response.text if 'response' in locals() else 'No response'}")
             raise e
+
+    def chat_stream(self, messages, temperature=0.7):
+        """
+        Sends a conversation history to DeepSeek and yields the response as a stream of tokens.
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True
+        }
+        
+        response = requests.post(self.base_url, headers=headers, json=payload, stream=True)
+        response.raise_for_status()
+        
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        import json
+                        data = json.loads(data_str)
+                        if "choices" in data and len(data["choices"]) > 0:
+                            delta = data["choices"][0].get("delta", {})
+                            if "content" in delta:
+                                yield delta["content"]
+                    except json.JSONDecodeError:
+                        pass

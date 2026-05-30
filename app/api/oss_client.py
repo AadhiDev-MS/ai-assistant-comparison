@@ -2,9 +2,9 @@ import requests
 import time
 
 class OSSClient:
-    def __init__(self, host_ip="35.175.201.115"):
+    def __init__(self, host_ip="127.0.0.1"):
         """
-        Connects to the Ollama server running on the AWS EC2 instance.
+        Connects to the Ollama server.
         """
         self.base_url = f"http://{host_ip}:11434/api/chat"
 
@@ -44,3 +44,26 @@ class OSSClient:
         except requests.exceptions.RequestException as e:
             print(f"OSS API Error: {e}")
             raise e
+
+    def chat_stream(self, messages):
+        """
+        Connects to Ollama and yields the response as a stream of tokens.
+        """
+        payload = {
+            "model": "llama3.2",
+            "messages": messages,
+            "stream": True
+        }
+        
+        response = requests.post(self.base_url, json=payload, stream=True)
+        response.raise_for_status()
+        
+        for line in response.iter_lines():
+            if line:
+                try:
+                    import json
+                    data = json.loads(line.decode('utf-8'))
+                    if "message" in data and "content" in data["message"]:
+                        yield data["message"]["content"]
+                except json.JSONDecodeError:
+                    pass

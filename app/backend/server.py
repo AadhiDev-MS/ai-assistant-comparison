@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -62,60 +63,114 @@ try:
 except Exception as e:
     oss_client = None
 
-@app.post("/api/chat")
-async def chat(request: Request):
-    """Handles chat messages, sends them to both models, and logs the metrics."""
+import json
+import time
+
+@app.post("/api/chat/deepseek")
+async def chat_deepseek(request: Request):
     data = await request.json()
     user_message = data.get("message", "")
-    
-    if not user_message:
-        return {"error": "Message is required"}
-        
+    if not user_message: return {"error": "Message required"}
     frontier_memory.add_user_message(user_message)
+    
+    def generate():
+        start_time = time.time()
+        ttft_ms = None
+        full_text = ""
+        token_count = 0
+        try:
+            if not frontier_client:
+                yield f"data: {json.dumps({'chunk': 'API Error'})}\n\n"
+                return
+            for chunk in frontier_client.chat_stream(frontier_memory.get_messages(current_prompt=user_message)):
+                if ttft_ms is None:
+                    ttft_ms = (time.time() - start_time) * 1000
+                full_text += chunk
+                token_count += len(chunk.split()) * 1.3
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'chunk': f'Error: {str(e)}'})}\n\n"
+        finally:
+            if ttft_ms is None: ttft_ms = 0.0
+            total_time_s = time.time() - start_time
+            gen_time_s = total_time_s - (ttft_ms / 1000.0)
+            tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
+            
+            cost_usd = (token_count / 1_000_000) * 0.27
+            logger.log_interaction("DeepSeek v4 Pro", user_message, full_text, ttft_ms, tps, int(token_count), cost_usd)
+            frontier_memory.add_assistant_message(full_text)
+            
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/api/chat/oss")
+async def chat_oss(request: Request):
+    data = await request.json()
+    user_message = data.get("message", "")
+    if not user_message: return {"error": "Message required"}
     oss_memory.add_user_message(user_message)
+    
+    def generate():
+        start_time = time.time()
+        ttft_ms = None
+        full_text = ""
+        token_count = 0
+        try:
+            if not oss_client:
+                yield f"data: {json.dumps({'chunk': 'API Error'})}\n\n"
+                return
+            for chunk in oss_client.chat_stream(oss_memory.get_messages(current_prompt=user_message)):
+                if ttft_ms is None:
+                    ttft_ms = (time.time() - start_time) * 1000
+                full_text += chunk
+                token_count += len(chunk.split()) * 1.3
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'chunk': f'Error: {str(e)}'})}\n\n"
+        finally:
+            if ttft_ms is None: ttft_ms = 0.0
+            total_time_s = time.time() - start_time
+            gen_time_s = total_time_s - (ttft_ms / 1000.0)
+            tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
+            
+            logger.log_interaction("Llama 3.2 8B (AWS - Unfiltered)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0)
+            oss_memory.add_assistant_message(full_text)
+            
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/api/chat/oss_secure")
+async def chat_oss_secure(request: Request):
+    data = await request.json()
+    user_message = data.get("message", "")
+    if not user_message: return {"error": "Message required"}
     oss_secure_memory.add_user_message(user_message)
     
-    # 1. Query DeepSeek
-    frontier_response_text = "API Error"
-    if frontier_client:
+    def generate():
+        start_time = time.time()
+        ttft_ms = None
+        full_text = ""
+        token_count = 0
         try:
-            res = frontier_client.chat(frontier_memory.get_messages(current_prompt=user_message))
-            frontier_response_text = res["content"]
-            logger.log_interaction(
-                "DeepSeek v4 Pro", user_message, frontier_response_text, 
-                res["latency_ms"], res["total_tokens"], res["cost_usd"]
-            )
+            if not oss_client:
+                yield f"data: {json.dumps({'chunk': 'API Error'})}\n\n"
+                return
+            for chunk in oss_client.chat_stream(oss_secure_memory.get_messages(current_prompt=user_message)):
+                if ttft_ms is None:
+                    ttft_ms = (time.time() - start_time) * 1000
+                full_text += chunk
+                token_count += len(chunk.split()) * 1.3
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         except Exception as e:
-            frontier_response_text = f"Error: {str(e)}"
-    frontier_memory.add_assistant_message(frontier_response_text)
-    
-    # 2. Query OSS (Unfiltered)
-    oss_response_text = "API Error"
-    if oss_client:
-        try:
-            res = oss_client.chat(oss_memory.get_messages(current_prompt=user_message))
-            oss_response_text = res["content"]
-            logger.log_interaction("Llama 3.2 8B (AWS - Unfiltered)", user_message, oss_response_text, res["latency_ms"], res["total_tokens"], res["cost_usd"])
-        except Exception as e:
-            oss_response_text = f"Error: {str(e)}"
-    oss_memory.add_assistant_message(oss_response_text)
-    
-    # 3. Query OSS (Secured via System Prompt)
-    oss_secure_response_text = "API Error"
-    if oss_client:
-        try:
-            res = oss_client.chat(oss_secure_memory.get_messages(current_prompt=user_message))
-            oss_secure_response_text = res["content"]
-            logger.log_interaction("Llama 3.2 8B (AWS - Secured)", user_message, oss_secure_response_text, res["latency_ms"], res["total_tokens"], res["cost_usd"])
-        except Exception as e:
-            oss_secure_response_text = f"Error: {str(e)}"
-    oss_secure_memory.add_assistant_message(oss_secure_response_text)
-    
-    return {
-        "deepseek": frontier_response_text,
-        "oss": oss_response_text,
-        "oss_secure": oss_secure_response_text
-    }
+            yield f"data: {json.dumps({'chunk': f'Error: {str(e)}'})}\n\n"
+        finally:
+            if ttft_ms is None: ttft_ms = 0.0
+            total_time_s = time.time() - start_time
+            gen_time_s = total_time_s - (ttft_ms / 1000.0)
+            tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
+            
+            logger.log_interaction("Llama 3.2 8B (AWS - Secured)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0)
+            oss_secure_memory.add_assistant_message(full_text)
+            
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @app.get("/api/logs")
 def get_logs():

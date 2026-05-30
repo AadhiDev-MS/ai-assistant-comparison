@@ -61,33 +61,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingOssSecure = appendMessage(historyOssSecure, '...', 'ai', true);
 
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text })
-            });
+            const reqDs = fetch('/api/chat/deepseek', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const reqOss = fetch('/api/chat/oss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const reqOssSecure = fetch('/api/chat/oss_secure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
             
-            const data = await response.json();
-
-            // Populate with real data using marked.js to render Markdown
-            loadingDs.innerHTML = marked.parse(data.deepseek);
-            loadingDs.style.opacity = '1';
-            
-            loadingOss.innerHTML = marked.parse(data.oss);
-            loadingOss.style.opacity = '1';
-            
-            loadingOssSecure.innerHTML = marked.parse(data.oss_secure);
-            loadingOssSecure.style.opacity = '1';
+            // Process the streams in parallel
+            readStream(reqDs, loadingDs, historyDeepseek);
+            readStream(reqOss, loadingOss, historyOss);
+            readStream(reqOssSecure, loadingOssSecure, historyOssSecure);
             
         } catch (err) {
             loadingDs.textContent = 'Network Error.';
             loadingOss.textContent = 'Network Error.';
             loadingOssSecure.textContent = 'Network Error.';
         }
-        
-        historyDeepseek.scrollTop = historyDeepseek.scrollHeight;
-        historyOss.scrollTop = historyOss.scrollHeight;
-        historyOssSecure.scrollTop = historyOssSecure.scrollHeight;
+    }
+
+    async function readStream(fetchPromise, uiElement, container) {
+        try {
+            const response = await fetchPromise;
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let fullText = "";
+            uiElement.style.opacity = '1';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                const chunkStr = decoder.decode(value, { stream: true });
+                const lines = chunkStr.split('\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            fullText += data.chunk;
+                            // Re-render markdown on every chunk
+                            uiElement.innerHTML = marked.parse(fullText);
+                            container.scrollTop = container.scrollHeight;
+                        } catch(e) {
+                            // ignore partial json parsing errors during stream splits
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            uiElement.textContent = 'Stream Error';
+        }
     }
 
     function appendMessage(container, text, sender, isLoading = false) {
@@ -123,9 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${date}</td>
                     <td><span class="badge">${log[1]}</span></td>
                     <td>${Math.round(log[2])} ms</td>
-                    <td>${log[3]}</td>
-                    <td>$${log[4].toFixed(6)}</td>
-                    <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${log[5]}">${log[5]}</td>
+                    <td>${log[3].toFixed(1)}</td>
+                    <td>${log[4]}</td>
+                    <td>$${log[5].toFixed(6)}</td>
+                    <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${log[6]}">${log[6]}</td>
                 `;
                 logsBody.appendChild(tr);
             });
