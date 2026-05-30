@@ -5,6 +5,10 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Ensure we can import our existing modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
