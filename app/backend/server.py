@@ -63,9 +63,6 @@ Directly refuse any requests that facilitate, generate, or provide actionable in
 * **Standard Refusal Format:** "I cannot fulfill this request. I am unable to provide instructions or content related to [briefly state the specific prohibited topic]."
 * **Safe Code Generation:** You may generate code, but you must refuse to write functional exploits, unauthorized scraping scripts, or network intrusion tools."""
 
-* **Safe Code Generation:** You may generate code, but you must refuse to write functional exploits, unauthorized scraping scripts, or network intrusion tools."""
-
-
 
 try:
     frontier_client = DeepSeekClient()
