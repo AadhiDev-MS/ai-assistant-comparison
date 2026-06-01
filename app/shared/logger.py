@@ -20,7 +20,7 @@ class InteractionLogger:
 
     def _create_table(self):
         cursor = self.conn.cursor()
-        self.cursor.execute('''
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -37,7 +37,7 @@ class InteractionLogger:
         
         # Add session_id column if it doesn't exist (migration for existing db)
         try:
-            self.cursor.execute("ALTER TABLE logs ADD COLUMN session_id TEXT DEFAULT 'default'")
+            cursor.execute("ALTER TABLE logs ADD COLUMN session_id TEXT DEFAULT 'default'")
         except sqlite3.OperationalError:
             pass # Column already exists
             
@@ -46,7 +46,7 @@ class InteractionLogger:
     def log_interaction(self, model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id="default"):
         cursor = self.conn.cursor()
         timestamp = datetime.utcnow().isoformat()
-        self.cursor.execute('''
+        cursor.execute('''
             INSERT INTO logs (model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id))
@@ -54,10 +54,11 @@ class InteractionLogger:
 
     def get_logs_as_list(self, session_id="default"):
         """Returns the most recent logs as a list of lists for UI rendering."""
-        self.cursor.execute('''
+        cursor = self.conn.cursor()
+        cursor.execute('''
             SELECT timestamp, model_name, ttft_ms, tps, total_tokens, cost_usd, user_prompt
             FROM logs 
             WHERE session_id = ?
             ORDER BY timestamp DESC LIMIT 50
         ''', (session_id,))
-        return self.cursor.fetchall()
+        return cursor.fetchall()
