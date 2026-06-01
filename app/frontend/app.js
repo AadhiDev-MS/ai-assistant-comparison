@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshLogsBtn = document.getElementById('refresh-logs-btn');
     const logsBody = document.getElementById('logs-body');
 
+    // Generate a unique session ID for this browser tab
+    const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
     // Tab Switching
     tabChat.addEventListener('click', () => switchTab(tabChat, viewChat));
     tabDashboard.addEventListener('click', () => {
@@ -61,9 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingOssSecure = appendMessage(historyOssSecure, '...', 'ai', true);
 
         try {
-            const reqDs = fetch('/api/chat/deepseek', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
-            const reqOss = fetch('/api/chat/oss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
-            const reqOssSecure = fetch('/api/chat/oss_secure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const reqDs = fetch('/api/chat/deepseek', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session_id: sessionId }) });
+            const reqOss = fetch('/api/chat/oss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session_id: sessionId }) });
+            const reqOssSecure = fetch('/api/chat/oss_secure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session_id: sessionId }) });
             
             // Process the streams in parallel
             readStream(reqDs, loadingDs, historyDeepseek);
