@@ -20,32 +20,44 @@ class InteractionLogger:
 
     def _create_table(self):
         cursor = self.conn.cursor()
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 model_name TEXT,
-                prompt TEXT,
-                response TEXT,
+                user_prompt TEXT,
+                model_response TEXT,
                 ttft_ms REAL,
                 tps REAL,
                 total_tokens INTEGER,
-                cost_usd REAL
+                cost_usd REAL,
+                session_id TEXT
             )
         ''')
+        
+        # Add session_id column if it doesn't exist (migration for existing db)
+        try:
+            self.cursor.execute("ALTER TABLE logs ADD COLUMN session_id TEXT DEFAULT 'default'")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+            
         self.conn.commit()
 
-    def log_interaction(self, model_name, prompt, response, ttft_ms, tps, total_tokens, cost_usd):
+    def log_interaction(self, model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id="default"):
         cursor = self.conn.cursor()
         timestamp = datetime.utcnow().isoformat()
-        cursor.execute('''
-            INSERT INTO logs (timestamp, model_name, prompt, response, ttft_ms, tps, total_tokens, cost_usd)
+        self.cursor.execute('''
+            INSERT INTO logs (model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (timestamp, model_name, prompt, response, ttft_ms, tps, total_tokens, cost_usd))
+        ''', (model_name, user_prompt, model_response, ttft_ms, tps, total_tokens, cost_usd, session_id))
         self.conn.commit()
 
-    def get_logs_as_list(self):
-        """Returns all logs as a list of lists, perfect for a Gradio Dataframe."""
-        cursor = self.conn.cursor()
-        cursor.execute('SELECT timestamp, model_name, ttft_ms, tps, total_tokens, cost_usd, prompt, response FROM logs ORDER BY id DESC')
-        return cursor.fetchall()
+    def get_logs_as_list(self, session_id="default"):
+        """Returns the most recent logs as a list of lists for UI rendering."""
+        self.cursor.execute('''
+            SELECT timestamp, model_name, ttft_ms, tps, total_tokens, cost_usd, user_prompt
+            FROM logs 
+            WHERE session_id = ?
+            ORDER BY timestamp DESC LIMIT 50
+        ''', (session_id,))
+        return self.cursor.fetchall()

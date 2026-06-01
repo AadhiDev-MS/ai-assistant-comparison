@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchLogs() {
         try {
-            const response = await fetch('/api/logs');
+            const response = await fetch('/api/logs?session_id=' + sessionId);
             const data = await response.json();
             
             logsBody.innerHTML = '';

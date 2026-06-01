@@ -112,7 +112,7 @@ async def chat_deepseek(request: Request):
             tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
             
             cost_usd = (token_count / 1_000_000) * 0.27
-            logger.log_interaction("DeepSeek v4 Pro", user_message, full_text, ttft_ms, tps, int(token_count), cost_usd)
+            logger.log_interaction("DeepSeek v4 Pro", user_message, full_text, ttft_ms, tps, int(token_count), cost_usd, session_id)
             frontier_memory.add_assistant_message(full_text)
             
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -151,7 +151,7 @@ async def chat_oss(request: Request):
             gen_time_s = total_time_s - (ttft_ms / 1000.0)
             tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
             
-            logger.log_interaction("Llama 3.2 8B (AWS - Unfiltered)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0)
+            logger.log_interaction("Llama 3.2 8B (AWS - Unfiltered)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0, session_id)
             oss_memory.add_assistant_message(full_text)
             
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -190,15 +190,15 @@ async def chat_oss_secure(request: Request):
             gen_time_s = total_time_s - (ttft_ms / 1000.0)
             tps = (token_count / gen_time_s) if gen_time_s > 0 else 0.0
             
-            logger.log_interaction("Llama 3.2 8B (AWS - Secured)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0)
+            logger.log_interaction("Llama 3.2 8B (AWS - Secured)", user_message, full_text, ttft_ms, tps, int(token_count), 0.0, session_id)
             oss_secure_memory.add_assistant_message(full_text)
             
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 @app.get("/api/logs")
-def get_logs():
+def get_logs(session_id: str = "default"):
     """Returns the raw logs for the Telemetry Dashboard."""
-    return {"logs": logger.get_logs_as_list()}
+    return {"logs": logger.get_logs_as_list(session_id)}
 
 # Serve the frontend directory statically
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
