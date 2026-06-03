@@ -4,8 +4,6 @@ A full-stack AI evaluation platform built to compare the performance, safety, an
 
 This project fulfills all core requirements and bonus objectives for the AI Personal Assistant engineering challenge.
 
-![Dashboard Preview](app/frontend/assets/dashboard_preview.png) *(Preview of the UI)*
-
 ---
 
 ## 🏗️ Architecture Decisions
