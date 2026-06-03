@@ -4,6 +4,12 @@ A full-stack AI evaluation platform built to compare the performance, safety, an
 
 This project fulfills all core requirements and bonus objectives for the AI Personal Assistant engineering challenge.
 
+![Chat UI](app/frontend/assets/cost.png)
+*(Real-time streaming chat comparison)*
+
+![Telemetry Dashboard](app/frontend/assets/dashboard.png)
+*(Live Telemetry & Evaluation Metrics Dashboard)*
+
 ---
 
 ## 🏗️ Architecture Decisions
