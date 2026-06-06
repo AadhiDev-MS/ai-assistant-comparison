@@ -5,7 +5,7 @@ A full-stack AI evaluation platform built to compare the performance, safety, an
 This project fulfills all core requirements and bonus objectives for the AI Personal Assistant engineering challenge.
 
 **🌐 Live Demo:** [http://32.194.99.27](http://32.194.99.27)  
-*(Note: To optimize AWS GPU cloud costs, the server may be spun down. Please reach out to view the live token-streaming in real-time!)*
+*(Note: To optimize AWS GPU cloud costs, the server may be spun down. Please reach out to view and use the site)*
 
 ![Chat UI](app/frontend/assets/cost.png)
 *(Real-time streaming chat comparison)*
